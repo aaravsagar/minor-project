@@ -1,0 +1,101 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email in ['admin@needconnect.com', 'admin@welcro.com', 'harsh@gmail.com', 'project.review@gtu.ac.in', 'admin@gtu.edu'] ||
+         request.auth.token.role == 'admin');
+    }
+
+    // System Seed Metadata
+    match /_system/{document} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Categories Collection
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update, delete: if isAuthenticated(); // Admins and platform initialization
+    }
+
+    // Requirements Collection
+    match /requirements/{requirementId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (resource.data.buyerId == request.auth.uid || isAdmin() || request.resource.data.offerCount != null);
+      allow delete: if isAuthenticated() && (resource.data.buyerId == request.auth.uid || isAdmin());
+    }
+
+    // Pitches Collection
+    match /pitches/{pitchId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && 
+        (resource.data.sellerId == request.auth.uid || 
+         resource.data.buyerId == request.auth.uid || 
+         isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.sellerId == request.auth.uid || isAdmin());
+    }
+
+    // Deals Collection
+    match /deals/{dealId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.buyerId == request.auth.uid || 
+         resource.data.sellerId == request.auth.uid || 
+         isAdmin());
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && 
+        (resource.data.buyerId == request.auth.uid || 
+         resource.data.sellerId == request.auth.uid || 
+         isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Conversations & Messages
+    match /conversations/{conversationId} {
+      allow read: if isAuthenticated() && 
+        (request.auth.uid in resource.data.participants || isAdmin());
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && 
+        (request.auth.uid in resource.data.participants || isAdmin());
+
+      match /messages/{messageId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+      }
+    }
+
+    // Reviews Collection
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && request.resource.data.buyerId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // Reports & Flags Collection
+    match /reports/{reportId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+  }
+}
