@@ -5,7 +5,7 @@ import { getStorage } from 'firebase/storage';
 
 // Production Firebase Configuration provided in project specification
 const firebaseConfig = {
-  apiKey: "AIzaSyD2QMy0wzAIudnd43QGqJfAdCyFNN72B1E",
+  apiKey: "AIzaSyD2qMY0wzAIdund43GqGJfAdCyFNN72B1E",
   authDomain: "welcro-7ffb3.firebaseapp.com",
   projectId: "welcro-7ffb3",
   storageBucket: "welcro-7ffb3.firebasestorage.app",
