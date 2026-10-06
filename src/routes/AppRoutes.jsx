@@ -13,6 +13,7 @@ import { PrivacyPage } from '../pages/public/PrivacyPage';
 import { LoginPage } from '../pages/auth/LoginPage';
 import { OnboardingPage } from '../pages/auth/OnboardingPage';
 import { AccessDeniedPage } from '../pages/auth/AccessDeniedPage';
+import { AccountSuspendedPage } from '../pages/auth/AccountSuspendedPage';
 import { NotFoundPage } from '../pages/auth/NotFoundPage';
 
 // Buyer Pages
@@ -34,6 +35,7 @@ import { SellerProfilePage } from '../pages/seller/SellerProfilePage';
 
 // Admin Pages
 import { AdminDashboard } from '../pages/admin/AdminDashboard';
+import { AdminMetricsPage } from '../pages/admin/AdminMetricsPage';
 import { AdminUsersPage } from '../pages/admin/AdminUsersPage';
 import { AdminRequirementsPage } from '../pages/admin/AdminRequirementsPage';
 import { AdminPitchesPage } from '../pages/admin/AdminPitchesPage';
@@ -58,6 +60,7 @@ export const AppRoutes = () => {
 
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="/access-denied" element={<AccessDeniedPage />} />
+      <Route path="/suspended" element={<AccountSuspendedPage />} />
 
       {/* Buyer Workspace Routes */}
       <Route
@@ -109,6 +112,7 @@ export const AppRoutes = () => {
         }
       >
         <Route index element={<AdminDashboard />} />
+        <Route path="metrics" element={<AdminMetricsPage />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="requirements" element={<AdminRequirementsPage />} />
         <Route path="pitches" element={<AdminPitchesPage />} />

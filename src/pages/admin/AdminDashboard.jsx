@@ -87,14 +87,32 @@ export const AdminDashboard = () => {
             Live overview of platform users, demand postings, seller proposals, and active contracts.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <Link to="/admin/metrics">
+            <Button
+              variant="outline"
+              icon={TrendingUp}
+              size="sm"
+            >
+              Deep Analytics & Metrics
+            </Button>
+          </Link>
+          <Link to="/admin/users">
+            <Button
+              variant="secondary"
+              icon={Users}
+              size="sm"
+            >
+              + Create Buyer / Manage Users
+            </Button>
+          </Link>
           <Button
             variant="secondary"
             icon={RefreshCw}
             size="sm"
             onClick={loadAdminData}
           >
-            Refresh Counts
+            Refresh
           </Button>
           <Button
             variant="primary"
@@ -103,9 +121,49 @@ export const AdminDashboard = () => {
             onClick={handleSeedData}
             loading={seeding}
           >
-            Seed / Reset Demo Data
+            Seed / Reset Data
           </Button>
         </div>
+      </div>
+
+      {/* Gross Transaction Volume Highlight Banner */}
+      <div 
+        style={{ 
+          background: 'linear-gradient(135deg, #1E40AF 0%, #1D4ED8 50%, #3B82F6 100%)', 
+          color: '#FFFFFF', 
+          borderRadius: '10px', 
+          padding: '20px 24px', 
+          marginBottom: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '16px',
+          boxShadow: '0 4px 14px rgba(30, 64, 175, 0.2)'
+        }}
+      >
+        <div>
+          <div style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', opacity: 0.9 }}>
+            Marketplace Financial Throughput
+          </div>
+          <div style={{ fontSize: '28px', fontWeight: 800, marginTop: '2px' }}>
+            {formatCurrency(stats.totalGrossVolume || 0)} Gross Volume
+          </div>
+          <div style={{ fontSize: '13px', opacity: 0.85, marginTop: '4px' }}>
+            Across {stats.totalDeals} settled transactions & accepted deals • Avg Deal Value: {formatCurrency(stats.avgDealValue || 0)}
+          </div>
+        </div>
+
+        <Link to="/admin/metrics">
+          <Button
+            variant="secondary"
+            size="md"
+            icon={ArrowRight}
+            style={{ backgroundColor: '#FFFFFF', color: '#1E40AF', borderColor: '#FFFFFF', fontWeight: 600 }}
+          >
+            View Full Metrics Breakdown
+          </Button>
+        </Link>
       </div>
 
       {/* Primary Statistics Grid */}

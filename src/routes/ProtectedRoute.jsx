@@ -30,6 +30,11 @@ export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     return children;
   }
 
+  // Account suspended or access revoked by administrator
+  if (userProfile?.status === 'suspended' || userProfile?.accessRevoked) {
+    return <Navigate to="/suspended" replace />;
+  }
+
   // Check role restrictions
   if (allowedRoles.length > 0 && !allowedRoles.includes(userProfile?.role)) {
     return <Navigate to="/access-denied" replace />;

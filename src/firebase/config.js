@@ -4,7 +4,7 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 // Production Firebase Configuration provided in project specification
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyD2qMY0wzAIdund43GqGJfAdCyFNN72B1E",
   authDomain: "welcro-7ffb3.firebaseapp.com",
   projectId: "welcro-7ffb3",

@@ -25,7 +25,8 @@ import {
   Send, 
   Users, 
   Flag,
-  Settings
+  Settings,
+  TrendingUp
 } from 'lucide-react';
 
 export const MobileNavDrawer = ({ isOpen, onClose }) => {
@@ -220,8 +221,11 @@ export const MobileNavDrawer = ({ isOpen, onClose }) => {
                   <NavLink to="/admin" end onClick={onClose} className="drawer-link" style={getNavLinkStyle}>
                     <LayoutDashboard size={18} /> <span>Overview</span>
                   </NavLink>
+                  <NavLink to="/admin/metrics" onClick={onClose} className="drawer-link" style={getNavLinkStyle}>
+                    <TrendingUp size={18} /> <span>Analytics & Metrics</span>
+                  </NavLink>
                   <NavLink to="/admin/users" onClick={onClose} className="drawer-link" style={getNavLinkStyle}>
-                    <Users size={18} /> <span>Users</span>
+                    <Users size={18} /> <span>Users & Credentials</span>
                   </NavLink>
                   <NavLink to="/admin/requirements" onClick={onClose} className="drawer-link" style={getNavLinkStyle}>
                     <Layers size={18} /> <span>Requirements</span>
@@ -246,16 +250,60 @@ export const MobileNavDrawer = ({ isOpen, onClose }) => {
               <Link to="/" onClick={onClose} style={staticLinkStyle}>
                 <Home size={18} /> <span>Home</span>
               </Link>
-              <Link to="/how-it-works" onClick={onClose} style={staticLinkStyle}>
+              <a href="/#how-it-works" onClick={onClose} style={staticLinkStyle}>
                 <HelpCircle size={18} /> <span>How It Works</span>
-              </Link>
-              <Link to="/categories" onClick={onClose} style={staticLinkStyle}>
+              </a>
+              <a href="/#categories" onClick={onClose} style={staticLinkStyle}>
                 <Tag size={18} /> <span>Categories</span>
-              </Link>
-              <Link to="/about" onClick={onClose} style={staticLinkStyle}>
+              </a>
+              <a href="/#about" onClick={onClose} style={staticLinkStyle}>
                 <Info size={18} /> <span>About</span>
-              </Link>
+              </a>
             </>
+          )}
+
+          {/* Quick Workspace Switcher inside mobile drawer for instant testing */}
+          {isAuthenticated && (
+            <div style={{ borderTop: '1px solid #E2E5E9', margin: '8px 0', paddingTop: '8px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', color: '#9AA5B1', padding: '6px 12px' }}>
+                SWITCH WORKSPACE
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '0 8px' }}>
+                {role !== 'buyer' && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      navigate('/buyer');
+                    }}
+                    style={switchBtnStyle}
+                  >
+                    Switch to Buyer Workspace
+                  </button>
+                )}
+                {role !== 'seller' && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      navigate('/seller');
+                    }}
+                    style={switchBtnStyle}
+                  >
+                    Switch to Seller Workspace
+                  </button>
+                )}
+                {isAdmin && role !== 'admin' && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      navigate('/admin');
+                    }}
+                    style={{ ...switchBtnStyle, color: '#7E22CE', backgroundColor: '#FAF5FF', borderColor: '#E9D5FF' }}
+                  >
+                    Admin Moderation Panel
+                  </button>
+                )}
+              </div>
+            </div>
           )}
 
           <div style={{ borderTop: '1px solid #E2E5E9', margin: '8px 0', paddingTop: '8px' }}>
@@ -328,4 +376,19 @@ const staticLinkStyle = {
   fontWeight: 500,
   color: '#334155',
   textDecoration: 'none'
+};
+
+const switchBtnStyle = {
+  display: 'block',
+  width: '100%',
+  textAlign: 'left',
+  padding: '8px 12px',
+  borderRadius: '6px',
+  fontSize: '12.5px',
+  fontWeight: 500,
+  color: '#2457A6',
+  backgroundColor: '#EBF2FC',
+  border: '1px solid #BCD0EE',
+  cursor: 'pointer',
+  transition: 'all 0.15s ease'
 };

@@ -18,7 +18,8 @@ import {
   Users, 
   Tag, 
   Flag,
-  Settings
+  Settings,
+  TrendingUp
 } from 'lucide-react';
 
 export const Sidebar = () => {
@@ -41,7 +42,8 @@ export const Sidebar = () => {
     if (role === 'admin') {
       return [
         { to: '/admin', icon: LayoutDashboard, label: 'Overview', end: true },
-        { to: '/admin/users', icon: Users, label: 'Users' },
+        { to: '/admin/metrics', icon: TrendingUp, label: 'Analytics & Metrics' },
+        { to: '/admin/users', icon: Users, label: 'Users & Credentials' },
         { to: '/admin/requirements', icon: Layers, label: 'Requirements' },
         { to: '/admin/pitches', icon: Send, label: 'Pitches' },
         { to: '/admin/categories', icon: Tag, label: 'Categories' },
