@@ -10,6 +10,7 @@ import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { Modal, ConfirmDialog } from '../../components/common/Modal';
 import { 
   Search, 
+  Users,
   UserPlus, 
   UserCheck, 
   UserX, 
