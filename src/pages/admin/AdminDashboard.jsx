@@ -20,7 +20,8 @@ import {
   RefreshCw, 
   CheckCircle2, 
   AlertTriangle,
-  ArrowRight
+  ArrowRight,
+  TrendingUp
 } from 'lucide-react';
 
 export const AdminDashboard = () => {
