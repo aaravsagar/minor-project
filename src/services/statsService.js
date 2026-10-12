@@ -1,7 +1,48 @@
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
+/**
+ * Safe extractor for pitch-level offer price.
+ * Standard field: offerPrice
+ * Documented backward compatibility fallback: offeredPrice, price
+ */
+export const extractOfferPrice = (pitch) => {
+  if (!pitch || typeof pitch !== 'object') return 0;
+  if (pitch.offerPrice !== undefined && pitch.offerPrice !== null && pitch.offerPrice !== '') {
+    const num = Number(pitch.offerPrice);
+    if (Number.isFinite(num) && num >= 0) return num;
+  }
+  const legacy = pitch.offeredPrice ?? pitch.price;
+  if (legacy !== undefined && legacy !== null && legacy !== '') {
+    const num = Number(legacy);
+    if (Number.isFinite(num) && num >= 0) return num;
+  }
+  return 0;
+};
+
+/**
+ * Safe extractor for deal-level agreed price.
+ * Standard field: dealPrice
+ * Documented backward compatibility fallback: agreedPrice, price
+ */
+export const extractDealPrice = (deal) => {
+  if (!deal || typeof deal !== 'object') return 0;
+  if (deal.dealPrice !== undefined && deal.dealPrice !== null && deal.dealPrice !== '') {
+    const num = Number(deal.dealPrice);
+    if (Number.isFinite(num) && num >= 0) return num;
+  }
+  const legacy = deal.agreedPrice ?? deal.price;
+  if (legacy !== undefined && legacy !== null && legacy !== '') {
+    const num = Number(legacy);
+    if (Number.isFinite(num) && num >= 0) return num;
+  }
+  return 0;
+};
+
 export const statsService = {
+  extractOfferPrice,
+  extractDealPrice,
+
   /**
    * Calculates platform-wide real statistics directly from Firestore collections
    */
@@ -49,43 +90,59 @@ export const statsService = {
       };
 
       reqs.forEach(r => {
-        const budget = Number(r.budget) || 0;
-        totalRequirementBudget += budget;
-        if (budget < 10000) budgetRanges.under10k++;
-        else if (budget <= 50000) budgetRanges.from10kTo50k++;
-        else if (budget <= 100000) budgetRanges.from50kTo100k++;
+        const budget = Number(r.budget);
+        const validBudget = (Number.isFinite(budget) && budget > 0) ? budget : 0;
+        totalRequirementBudget += validBudget;
+        if (validBudget < 10000) budgetRanges.under10k++;
+        else if (validBudget <= 50000) budgetRanges.from10kTo50k++;
+        else if (validBudget <= 100000) budgetRanges.from50kTo100k++;
         else budgetRanges.above100k++;
       });
 
       const avgRequirementBudget = totalRequirements > 0 ? Math.round(totalRequirementBudget / totalRequirements) : 0;
 
-      // Pitches / Proposals Breakdown
+      // Pitches / Proposals Breakdown & Monetary Standardization on `offerPrice`
       const totalPitches = pitches.length;
       const acceptedPitches = pitches.filter(p => p.status === 'accepted').length;
       const pendingPitches = pitches.filter(p => p.status === 'pending').length;
       const rejectedPitches = pitches.filter(p => p.status === 'rejected').length;
       const pitchAcceptanceRate = totalPitches > 0 ? Math.round((acceptedPitches / totalPitches) * 100) : 0;
 
-      // Deals & Transaction Volume Breakdown
+      let totalOfferValue = 0;
+      let totalAcceptedOfferValue = 0;
+      pitches.forEach(p => {
+        const val = extractOfferPrice(p);
+        totalOfferValue += val;
+        if (p.status === 'accepted') {
+          totalAcceptedOfferValue += val;
+        }
+      });
+      const avgOfferValue = totalPitches > 0 ? Math.round(totalOfferValue / totalPitches) : 0;
+
+      // Deals & Gross Merchandise Volume (GMV) Standardization on `dealPrice`
       const totalDeals = deals.length;
       const activeDeals = deals.filter(d => d.status === 'active' || d.status === 'in_progress').length;
       const completedDeals = deals.filter(d => d.status === 'completed' || d.status === 'delivered').length;
       const cancelledDeals = deals.filter(d => d.status === 'cancelled' || d.status === 'disputed').length;
 
+      // Only count active or completed deals towards GMV (exclude cancelled/disputed)
+      const eligibleDeals = deals.filter(d => 
+        ['active', 'in_progress', 'completed', 'delivered'].includes(d.status) || !d.status
+      );
+
       let totalGrossVolume = 0;
-      deals.forEach(d => {
-        const price = Number(d.agreedPrice || d.price || d.budget) || 0;
+      eligibleDeals.forEach(d => {
+        const price = extractDealPrice(d);
         totalGrossVolume += price;
       });
 
-      // If deals volume is 0 but accepted pitches exist, sum accepted pitches
+      // Backward compatibility: If 0 deals in collection but accepted pitches exist, fallback to accepted offer values
       if (totalGrossVolume === 0 && acceptedPitches > 0) {
-        pitches.filter(p => p.status === 'accepted').forEach(p => {
-          totalGrossVolume += Number(p.offeredPrice || p.price) || 0;
-        });
+        totalGrossVolume = totalAcceptedOfferValue;
       }
 
-      const avgDealValue = totalDeals > 0 ? Math.round(totalGrossVolume / totalDeals) : (acceptedPitches > 0 ? Math.round(totalGrossVolume / acceptedPitches) : 0);
+      const eligibleCount = eligibleDeals.length > 0 ? eligibleDeals.length : acceptedPitches;
+      const avgDealValue = eligibleCount > 0 ? Math.round(totalGrossVolume / eligibleCount) : 0;
 
       // Category Distribution
       const catCountMap = {};
@@ -109,7 +166,7 @@ export const statsService = {
       const resolvedReports = reports.filter(r => r.status === 'resolved').length;
       const resolutionRate = totalReports > 0 ? Math.round((resolvedReports / totalReports) * 100) : 100;
 
-      // Build Recent Activity Feed
+      // Build Recent Activity Feed with Standardized Monetary Displays
       const activityFeed = [];
       
       users.slice(0, 5).forEach(u => {
@@ -123,19 +180,21 @@ export const statsService = {
       });
 
       reqs.slice(0, 6).forEach(r => {
+        const budgetNum = Number(r.budget) || 0;
         activityFeed.push({
           type: 'requirement',
           title: `Requirement posted: "${r.title}"`,
-          subtitle: `Budget: ₹${Number(r.budget || 0).toLocaleString('en-IN')} by ${r.buyerName || 'Buyer'}`,
+          subtitle: `Budget: ₹${budgetNum.toLocaleString('en-IN')} by ${r.buyerName || 'Buyer'}`,
           timestamp: r.createdAt,
           badge: 'demand'
         });
       });
 
       pitches.slice(0, 5).forEach(p => {
+        const priceNum = extractOfferPrice(p);
         activityFeed.push({
           type: 'pitch',
-          title: `Offer submitted: ₹${Number(p.offeredPrice || 0).toLocaleString('en-IN')}`,
+          title: `Offer submitted: ₹${priceNum.toLocaleString('en-IN')}`,
           subtitle: `By ${p.sellerName || 'Seller'} • Status: ${p.status}`,
           timestamp: p.createdAt,
           badge: p.status === 'accepted' ? 'accepted' : 'offer'
@@ -143,10 +202,11 @@ export const statsService = {
       });
 
       deals.slice(0, 4).forEach(d => {
+        const dealVal = extractDealPrice(d);
         activityFeed.push({
           type: 'deal',
           title: `Contract established: ${d.requirementTitle || 'Deal'}`,
-          subtitle: `Value: ₹${Number(d.agreedPrice || 0).toLocaleString('en-IN')} • Status: ${d.status}`,
+          subtitle: `Value: ₹${dealVal.toLocaleString('en-IN')} • Status: ${d.status}`,
           timestamp: d.createdAt,
           badge: 'deal'
         });
@@ -178,6 +238,9 @@ export const statsService = {
         pendingPitches,
         rejectedPitches,
         pitchAcceptanceRate,
+        totalOfferValue,
+        avgOfferValue,
+        totalAcceptedOfferValue,
 
         // Deals & Financials
         totalDeals,
@@ -222,6 +285,9 @@ export const statsService = {
         pendingPitches: 0,
         rejectedPitches: 0,
         pitchAcceptanceRate: 0,
+        totalOfferValue: 0,
+        avgOfferValue: 0,
+        totalAcceptedOfferValue: 0,
         totalDeals: 0,
         activeDeals: 0,
         completedDeals: 0,

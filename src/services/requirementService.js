@@ -12,23 +12,53 @@ import {
   increment
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { getCategoryLimits } from '../config/categoryPriceLimits';
 
 export const requirementService = {
   /**
-   * Buyer posts a new requirement
+   * Buyer posts a new requirement with business validation.
+   * Rejects unrealistic inputs before any Firestore write occurs.
    */
   async createRequirement(data) {
+    if (!data.title || !data.title.trim()) {
+      throw new Error('Requirement title is required');
+    }
+    if (!data.categoryId) {
+      throw new Error('Category is required');
+    }
+
+    const budgetNum = Number(data.budget);
+    if (isNaN(budgetNum) || !Number.isFinite(budgetNum) || budgetNum <= 0) {
+      throw new Error('Budget must be a finite positive number greater than zero');
+    }
+
+    const limits = getCategoryLimits(data.categoryId);
+    if (budgetNum < limits.min) {
+      throw new Error(`Budget is below the permitted minimum for this category (minimum: ₹${limits.min.toLocaleString('en-IN')} for ${limits.name})`);
+    }
+    if (budgetNum > limits.max) {
+      throw new Error(`Budget exceeds the permitted maximum for this category (maximum: ₹${limits.max.toLocaleString('en-IN')} for ${limits.name})`);
+    }
+
+    if (data.quantity !== undefined && data.quantity !== null && data.quantity !== '') {
+      const qty = Number(data.quantity);
+      if (isNaN(qty) || !Number.isInteger(qty) || qty < 1 || qty > 10000) {
+        throw new Error('Quantity must be a positive integer between 1 and 10,000');
+      }
+    }
+
     const colRef = collection(db, 'requirements');
     const docRef = await addDoc(colRef, {
       buyerId: data.buyerId,
       buyerName: data.buyerName,
       buyerEmail: data.buyerEmail || '',
       title: data.title.trim(),
-      description: data.description.trim(),
+      description: (data.description || '').trim(),
       categoryId: data.categoryId,
-      categoryName: data.categoryName,
-      budget: Number(data.budget),
-      location: data.location.trim(),
+      categoryName: data.categoryName || limits.name || 'General',
+      budget: budgetNum,
+      quantity: data.quantity ? Number(data.quantity) : 1,
+      location: (data.location || '').trim(),
       urgency: data.urgency,
       imageUrl: data.imageUrl || '',
       status: 'active', // 'active' | 'fulfilled' | 'closed'
@@ -37,7 +67,14 @@ export const requirementService = {
       updatedAt: serverTimestamp()
     });
 
-    return { id: docRef.id, ...data, status: 'active', offerCount: 0 };
+    return { 
+      id: docRef.id, 
+      ...data, 
+      budget: budgetNum, 
+      quantity: data.quantity ? Number(data.quantity) : 1,
+      status: 'active', 
+      offerCount: 0 
+    };
   },
 
   /**
@@ -69,20 +106,37 @@ export const requirementService = {
   },
 
   /**
-   * Browse active requirements for sellers with filters
+   * Browse active requirements for sellers with server-side Firestore filtering.
+   * Query constraints status == 'active' and categoryId are pushed directly to Firestore
+   * to eliminate unnecessary document reads and reduce Firestore costs.
    */
-  async getActiveRequirements({ categoryId, search, location, maxBudget, sortBy = 'newest' } = {}) {
+  async getActiveRequirements({ categoryId, category, search, location, minBudget, maxBudget, sortBy = 'newest' } = {}) {
     const colRef = collection(db, 'requirements');
-    let q = query(colRef, where('status', '==', 'active'));
+    const constraints = [where('status', '==', 'active')];
 
-    const snap = await getDocs(q);
-    let list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    // Apply in-memory search and filters to handle composite queries cleanly
-    if (categoryId && categoryId !== 'all') {
-      list = list.filter(r => r.categoryId === categoryId);
+    // Support either categoryId or category property from caller
+    const targetCategory = categoryId || category;
+    if (targetCategory && targetCategory !== 'all') {
+      constraints.push(where('categoryId', '==', targetCategory));
     }
 
+    const q = query(colRef, ...constraints);
+    const snap = await getDocs(q);
+
+    // Map documents safely, guarding against missing/optional fields
+    let list = snap.docs.map(d => {
+      const data = d.data() || {};
+      return {
+        id: d.id,
+        ...data,
+        categoryId: data.categoryId || '',
+        categoryName: data.categoryName || 'General',
+        budget: typeof data.budget === 'number' ? data.budget : (Number(data.budget) || 0),
+        status: data.status || 'active'
+      };
+    });
+
+    // Secondary client-side filters for un-indexed text substring matches and bounds
     if (location && location.trim()) {
       const loc = location.toLowerCase().trim();
       list = list.filter(r => (r.location || '').toLowerCase().includes(loc));
@@ -97,11 +151,15 @@ export const requirementService = {
       );
     }
 
+    if (minBudget && Number(minBudget) > 0) {
+      list = list.filter(r => Number(r.budget) >= Number(minBudget));
+    }
+
     if (maxBudget && Number(maxBudget) > 0) {
       list = list.filter(r => Number(r.budget) <= Number(maxBudget));
     }
 
-    // Sort
+    // Sort order
     if (sortBy === 'newest') {
       list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
     } else if (sortBy === 'budget-high') {

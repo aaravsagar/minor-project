@@ -39,6 +39,25 @@ export const BuyerOffersPage = () => {
   const [pitches, setPitches] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [offerSortBy, setOfferSortBy] = useState('mcdm');
+
+  // Multi-Criteria sorted pitches
+  const sortedPitches = [...pitches].sort((a, b) => {
+    if (offerSortBy === 'mcdm') {
+      return (b.mcdm?.score ?? 0) - (a.mcdm?.score ?? 0);
+    }
+    if (offerSortBy === 'price-low') {
+      return Number(a.offerPrice) - Number(b.offerPrice);
+    }
+    if (offerSortBy === 'rating-high') {
+      return (Number(b.sellerTrustScore) || 5) - (Number(a.sellerTrustScore) || 5);
+    }
+    if (offerSortBy === 'delivery-fast') {
+      return (a.mcdm?.criteria?.deliveryDays ?? 99) - (b.mcdm?.criteria?.deliveryDays ?? 99);
+    }
+    return 0;
+  });
+
   // Acceptance confirmation state
   const [acceptingPitch, setAcceptingPitch] = useState(null);
   const [acceptLoading, setAcceptLoading] = useState(false);
@@ -210,18 +229,38 @@ export const BuyerOffersPage = () => {
 
       {/* Offers Comparison Section */}
       <div className="card">
-        <div className="card-header">
+        <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <h3 className="card-title">
               Seller Pitches ({pitches.length})
             </h3>
             <p className="card-subtitle">
-              Sellers competing to fulfill your requirement. Evaluated from lowest price to highest.
+              Sellers competing to fulfill your requirement. Evaluated via Multi-Criteria Decision-Making (MCDM) model.
             </p>
           </div>
-          {requirement?.status === 'fulfilled' && (
-            <Badge variant="fulfilled">Offer Accepted / Deal Concluded</Badge>
-          )}
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {pitches.length > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '12.5px', color: '#667085', fontWeight: 500 }}>Rank by:</span>
+                <select
+                  value={offerSortBy}
+                  onChange={(e) => setOfferSortBy(e.target.value)}
+                  className="form-control"
+                  style={{ width: 'auto', padding: '6px 10px', fontSize: '13px' }}
+                >
+                  <option value="mcdm">★ MCDM Best Match (Rating + Price + Delivery)</option>
+                  <option value="price-low">Lowest Offer Price</option>
+                  <option value="rating-high">Highest Seller Trust Score</option>
+                  <option value="delivery-fast">Fastest Delivery Timeline</option>
+                </select>
+              </div>
+            )}
+
+            {requirement?.status === 'fulfilled' && (
+              <Badge variant="fulfilled">Offer Accepted / Deal Concluded</Badge>
+            )}
+          </div>
         </div>
 
         {pitches.length === 0 ? (
@@ -231,7 +270,7 @@ export const BuyerOffersPage = () => {
           />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {pitches.map((pitch, idx) => {
+            {sortedPitches.map((pitch) => {
               const savings = (requirement?.budget || 0) - Number(pitch.offerPrice);
               const isAccepted = pitch.status === 'accepted';
               const isRejected = pitch.status === 'rejected';
@@ -240,7 +279,7 @@ export const BuyerOffersPage = () => {
                 <div
                   key={pitch.id}
                   style={{
-                    border: isAccepted ? '2px solid #287D3C' : '1px solid #E2E5E9',
+                    border: isAccepted ? '2px solid #287D3C' : (pitch.mcdm?.isTopRecommendation ? '2px solid #2457A6' : '1px solid #E2E5E9'),
                     borderRadius: '8px',
                     padding: '20px',
                     backgroundColor: isAccepted ? '#F9FDF9' : '#FFFFFF',
@@ -248,6 +287,31 @@ export const BuyerOffersPage = () => {
                     transition: 'all 0.15s ease'
                   }}
                 >
+                  {/* MCDM Recommended Ribbon / Indicator */}
+                  {pitch.mcdm && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', paddingBottom: '10px', borderBottom: '1px solid #F1F3F5', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {pitch.mcdm.isTopRecommendation && (
+                          <span style={{ backgroundColor: '#2457A6', color: '#FFFFFF', padding: '3px 8px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            ★ Top Recommendation • Rank #{pitch.mcdm.rank}
+                          </span>
+                        )}
+                        {!pitch.mcdm.isTopRecommendation && (
+                          <span style={{ backgroundColor: '#F1F5F9', color: '#475569', padding: '3px 8px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 600 }}>
+                            Rank #{pitch.mcdm.rank} of {pitches.length}
+                          </span>
+                        )}
+                        <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#1E40AF' }}>
+                          MCDM Match Score: {pitch.mcdm.scorePercentage}/100
+                        </span>
+                      </div>
+
+                      <div style={{ fontSize: '11.5px', color: '#64748B' }}>
+                        Normalized Factors: Rating {(pitch.mcdm.normalized.rating * 100).toFixed(0)}% • Price {(pitch.mcdm.normalized.price * 100).toFixed(0)}% • Speed {(pitch.mcdm.normalized.deliveryTime * 100).toFixed(0)}%
+                      </div>
+                    </div>
+                  )}
+
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px', marginBottom: '14px' }}>
                     {/* Seller Profile Summary */}
                     <div style={{ display: 'flex', gap: '12px' }}>

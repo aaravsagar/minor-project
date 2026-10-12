@@ -7,6 +7,7 @@ import { requirementService } from '../../services/requirementService';
 import { Input, Textarea, Select } from '../../components/common/FormControls';
 import { Button } from '../../components/common/Button';
 import { PlusCircle, ArrowLeft, Image as ImageIcon } from 'lucide-react';
+import { getCategoryLimits } from '../../config/categoryPriceLimits';
 
 export const PostRequirementPage = () => {
   const { currentUser, userProfile } = useAuth();
@@ -66,9 +67,19 @@ export const PostRequirementPage = () => {
     if (!formData.title.trim()) newErrors.title = 'Requirement title is required';
     if (!formData.categoryId) newErrors.categoryId = 'Please select a category';
     if (!formData.description.trim()) newErrors.description = 'Please provide specifications / details';
-    if (!formData.budget || Number(formData.budget) <= 0) {
+    
+    const budgetNum = Number(formData.budget);
+    if (!formData.budget || isNaN(budgetNum) || !Number.isFinite(budgetNum) || budgetNum <= 0) {
       newErrors.budget = 'Please enter a valid positive budget amount';
+    } else if (formData.categoryId) {
+      const limits = getCategoryLimits(formData.categoryId);
+      if (budgetNum < limits.min) {
+        newErrors.budget = `Budget is below the permitted minimum for ${limits.name} (minimum: ₹${limits.min.toLocaleString('en-IN')})`;
+      } else if (budgetNum > limits.max) {
+        newErrors.budget = `Budget exceeds the permitted maximum for ${limits.name} (maximum: ₹${limits.max.toLocaleString('en-IN')})`;
+      }
     }
+
     if (!formData.location.trim()) newErrors.location = 'Location / city is required';
     if (!formData.urgency) newErrors.urgency = 'Please select your urgency timeline';
 

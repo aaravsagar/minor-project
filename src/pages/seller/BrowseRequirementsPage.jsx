@@ -73,16 +73,22 @@ export const BrowseRequirementsPage = () => {
     { value: 'Within 1 week', label: 'Within 1 week' }
   ];
 
-  const loadAll = async () => {
+  const loadAll = async (overrideFilters = null) => {
     try {
       setLoading(true);
+      const categoryToQuery = overrideFilters?.categoryId !== undefined ? overrideFilters.categoryId : selectedCat;
+      const searchToQuery = overrideFilters?.search !== undefined ? overrideFilters.search : search;
+      const locationToQuery = overrideFilters?.location !== undefined ? overrideFilters.location : locationFilter;
+      const maxBudgetToQuery = overrideFilters?.maxBudget !== undefined ? overrideFilters.maxBudget : maxBudget;
+      const sortByToQuery = overrideFilters?.sortBy !== undefined ? overrideFilters.sortBy : sortBy;
+
       const [reqList, catList, pitches] = await Promise.all([
         requirementService.getActiveRequirements({
-          categoryId: selectedCat,
-          search,
-          location: locationFilter,
-          maxBudget,
-          sortBy
+          categoryId: categoryToQuery,
+          search: searchToQuery,
+          location: locationToQuery,
+          maxBudget: maxBudgetToQuery,
+          sortBy: sortByToQuery
         }),
         categoryService.getCategories(),
         currentUser?.uid ? pitchService.getSellerPitches(currentUser.uid) : []
@@ -111,6 +117,21 @@ export const BrowseRequirementsPage = () => {
   const handleApplyFilter = (e) => {
     e.preventDefault();
     loadAll();
+  };
+
+  const handleResetFilters = () => {
+    setSearch('');
+    setSelectedCat('all');
+    setLocationFilter('');
+    setMaxBudget('');
+    setSortBy('newest');
+    loadAll({
+      categoryId: 'all',
+      search: '',
+      location: '',
+      maxBudget: '',
+      sortBy: 'newest'
+    });
   };
 
   const handleOpenPitchModal = (req) => {
@@ -232,14 +253,7 @@ export const BrowseRequirementsPage = () => {
               type="button"
               variant="secondary"
               size="sm"
-              onClick={() => {
-                setSearch('');
-                setSelectedCat('all');
-                setLocationFilter('');
-                setMaxBudget('');
-                setSortBy('newest');
-                loadAll();
-              }}
+              onClick={handleResetFilters}
             >
               Reset Filters
             </Button>

@@ -12,6 +12,7 @@ import {
 import { db } from '../firebase/config';
 import { requirementService } from './requirementService';
 import { reviewService } from './reviewService';
+import { mcdmScoringService } from './mcdmScoringService';
 
 export const pitchService = {
   /**
@@ -86,7 +87,16 @@ export const pitchService = {
       }
     }));
 
-    // Sort by offerPrice ascending (best deal first)
+    // Calculate Multi-Criteria Decision-Making (MCDM) scores across the comparison set
+    try {
+      if (enriched.length > 0) {
+        return mcdmScoringService.calculateMCDMScores(enriched);
+      }
+    } catch (err) {
+      console.warn('MCDM scoring warning, falling back to price sorting:', err.message);
+    }
+
+    // Fallback: Sort by offerPrice ascending (best deal first)
     return enriched.sort((a, b) => Number(a.offerPrice) - Number(b.offerPrice));
   },
 
