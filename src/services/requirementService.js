@@ -13,11 +13,13 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { getCategoryLimits } from '../config/categoryPriceLimits';
+import { API_BASE_URL } from '../config/apiConfig';
 
 export const requirementService = {
   /**
-   * Buyer posts a new requirement with business validation.
-   * Rejects unrealistic inputs before any Firestore write occurs.
+   * Buyer posts a new requirement.
+   * Dispatches request to the Express backend (Render) for express-validator processing
+   * and Firestore persistence.
    */
   async createRequirement(data) {
     if (!data.title || !data.title.trim()) {
@@ -47,6 +49,51 @@ export const requirementService = {
       }
     }
 
+    // 1. Post to Express Backend on Render
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/requirements`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${data.buyerId}`,
+          'x-user-id': data.buyerId
+        },
+        body: JSON.stringify({
+          ...data,
+          budget: budgetNum,
+          quantity: data.quantity ? Number(data.quantity) : 1
+        })
+      });
+
+      const resJson = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        if (resJson?.errors && Array.isArray(resJson.errors) && resJson.errors.length > 0) {
+          const detailedMsg = resJson.errors.map(e => e.message).join('. ');
+          throw new Error(detailedMsg || resJson.message || 'Validation failed on server');
+        }
+        throw new Error(resJson?.message || `Server responded with status ${response.status}`);
+      }
+
+      if (resJson?.data) {
+        return resJson.data;
+      }
+    } catch (apiErr) {
+      // Re-throw validation errors directly
+      if (
+        apiErr.message.includes('Budget is below') || 
+        apiErr.message.includes('Validation failed') ||
+        apiErr.message.includes('permitted minimum') ||
+        apiErr.message.includes('Quantity must be') ||
+        apiErr.message.includes('required')
+      ) {
+        throw apiErr;
+      }
+      
+      console.warn('Backend API call failed, falling back to direct Firestore SDK:', apiErr.message);
+    }
+
+    // 2. Fallback direct Firestore write if backend is unreachable
     const colRef = collection(db, 'requirements');
     const docRef = await addDoc(colRef, {
       buyerId: data.buyerId,
