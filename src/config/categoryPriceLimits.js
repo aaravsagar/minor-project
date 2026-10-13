@@ -1,6 +1,7 @@
 /**
  * Business-defined category price and quantity limits for Need Connect.
  * Configurable boundaries prevent unrealistic requirements (e.g. ₹200 laptop).
+ * Minimum prices are set per category based on real market entry points in India.
  */
 export const CATEGORY_PRICE_LIMITS = {
   cat_laptops: {
@@ -56,6 +57,36 @@ export const CATEGORY_PRICE_LIMITS = {
     max: 500000,
     name: 'Services',
     description: 'Repairs, graphic design, technical & consulting services'
+  },
+  cat_sports: {
+    min: 100,
+    max: 200000,
+    name: 'Sports & Fitness',
+    description: 'Exercise equipment, sports gear & outdoor accessories'
+  },
+  cat_groceries: {
+    min: 50,
+    max: 50000,
+    name: 'Groceries & Food',
+    description: 'Packaged food, beverages & daily essentials'
+  },
+  cat_beauty: {
+    min: 50,
+    max: 50000,
+    name: 'Beauty & Personal Care',
+    description: 'Skincare, haircare, cosmetics & wellness products'
+  },
+  cat_toys: {
+    min: 100,
+    max: 100000,
+    name: 'Toys & Games',
+    description: 'Board games, educational toys & hobby kits'
+  },
+  cat_stationery: {
+    min: 30,
+    max: 50000,
+    name: 'Stationery & Office',
+    description: 'Pens, notebooks, office supplies & art materials'
   },
   default: {
     min: 100,

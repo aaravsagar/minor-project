@@ -5,7 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import { statsService } from '../../services/statsService';
 import { requirementService } from '../../services/requirementService';
 import { reportService } from '../../services/reportService';
-import { seedDemoData } from '../../firebase/seedDemoData';
+
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
@@ -16,7 +16,6 @@ import {
   Send, 
   Handshake, 
   Flag, 
-  Database, 
   RefreshCw, 
   CheckCircle2, 
   AlertTriangle,
@@ -33,7 +32,7 @@ export const AdminDashboard = () => {
   const [latestReqs, setLatestReqs] = useState([]);
   const [openReports, setOpenReports] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [seeding, setSeeding] = useState(false);
+
 
   const loadAdminData = async () => {
     try {
@@ -58,22 +57,7 @@ export const AdminDashboard = () => {
     loadAdminData();
   }, []);
 
-  const handleSeedData = async () => {
-    try {
-      setSeeding(true);
-      const res = await seedDemoData(true);
-      if (res.success) {
-        toast.success(res.message);
-        await loadAdminData();
-      } else {
-        toast.error(res.message);
-      }
-    } catch (err) {
-      toast.error('Error seeding data: ' + err.message);
-    } finally {
-      setSeeding(false);
-    }
-  };
+
 
   if (loading || !stats) {
     return <LoadingSpinner text="Computing Firestore administrative metrics..." />;

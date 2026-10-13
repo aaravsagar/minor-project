@@ -5,11 +5,10 @@ import { useToast } from '../context/ToastContext';
 import { Badge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { MobileNavDrawer } from '../components/common/MobileNavDrawer';
-import { seedDemoData } from '../firebase/seedDemoData';
+
 import { 
   Menu, 
   LogOut, 
-  Database, 
   ShieldCheck,
   User,
   ArrowRightLeft
@@ -21,7 +20,6 @@ export const Header = () => {
   const navigate = useNavigate();
 
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const [seeding, setSeeding] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -33,24 +31,6 @@ export const Header = () => {
     }
   };
 
-  const handleSeedData = async () => {
-    try {
-      setSeeding(true);
-      const res = await seedDemoData(true);
-      if (res.success) {
-        toast.success('Demo data synchronized successfully.');
-        setTimeout(() => {
-          window.location.reload();
-        }, 600);
-      } else {
-        toast.error(res.message);
-      }
-    } catch (err) {
-      toast.error('Error seeding data: ' + err.message);
-    } finally {
-      setSeeding(false);
-    }
-  };
 
   const handleQuickRoleSwitch = async (role) => {
     try {

@@ -5,7 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/FormControls';
 import { Modal } from '../../components/common/Modal';
-import { LogIn, UserPlus, Key, ShieldCheck, Store, UserCheck } from 'lucide-react';
+import { LogIn, UserPlus, Key, UserCheck } from 'lucide-react';
 
 export const LoginPage = () => {
   const [searchParams] = useSearchParams();
@@ -106,29 +106,8 @@ export const LoginPage = () => {
     }
   };
 
-  const handleFillDemo = (username, pass) => {
-    setIsRegister(false);
-    setEmailOrUsername(username);
-    setPassword(pass);
-  };
-
-  const handleDirectDemoLogin = async (username, pass) => {
-    try {
-      setLoading(true);
-      setIsRegister(false);
-      setEmailOrUsername(username);
-      setPassword(pass);
-      const { profile } = await loginWithEmail(username, pass);
-      toast.success(`Logged in as ${profile.role.toUpperCase()}!`);
-      handleRedirectAfterAuth(profile);
-    } catch (err) {
-      toast.error('Demo login error: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleResetPassword = async (e) => {
+
     e.preventDefault();
     if (!resetEmail.trim()) {
       toast.error('Please enter your email address.');
@@ -362,91 +341,7 @@ export const LoginPage = () => {
           )}
         </div>
 
-        {/* Clean Demo Access Box */}
-        <div
-          style={{
-            marginTop: '24px',
-            padding: '16px',
-            backgroundColor: '#F8FAFC',
-            border: '1px solid #E2E5E9',
-            borderRadius: '6px'
-          }}
-        >
-          <div style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#4B5563', marginBottom: '10px' }}>
-            Demo Access
-          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            {/* Demo Seller Box */}
-            <div
-              style={{
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #E2E5E9',
-                borderRadius: '6px',
-                padding: '10px',
-                fontSize: '12px'
-              }}
-            >
-              <div style={{ fontWeight: 600, color: '#1F2933', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-                <Store size={14} color="#287D3C" /> Demo Seller
-              </div>
-              <div style={{ color: '#667085' }}>User: <code style={{ color: '#1F2933' }}>seller</code></div>
-              <div style={{ color: '#667085' }}>Pass: <code style={{ color: '#1F2933' }}>password123</code></div>
-              <button
-                type="button"
-                onClick={() => handleDirectDemoLogin('seller', 'password123')}
-                style={{
-                  marginTop: '8px',
-                  width: '100%',
-                  padding: '4px 6px',
-                  backgroundColor: '#EBF6EE',
-                  border: '1px solid #B4E0C0',
-                  borderRadius: '4px',
-                  color: '#287D3C',
-                  fontWeight: 600,
-                  fontSize: '11px',
-                  cursor: 'pointer'
-                }}
-              >
-                Log In as Seller
-              </button>
-            </div>
-
-            {/* Demo Admin Box */}
-            <div
-              style={{
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #E2E5E9',
-                borderRadius: '6px',
-                padding: '10px',
-                fontSize: '12px'
-              }}
-            >
-              <div style={{ fontWeight: 600, color: '#1F2933', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-                <ShieldCheck size={14} color="#2457A6" /> Demo Admin
-              </div>
-              <div style={{ color: '#667085' }}>User: <code style={{ color: '#1F2933' }}>admin</code></div>
-              <div style={{ color: '#667085' }}>Pass: <code style={{ color: '#1F2933' }}>password123</code></div>
-              <button
-                type="button"
-                onClick={() => handleDirectDemoLogin('admin', 'password123')}
-                style={{
-                  marginTop: '8px',
-                  width: '100%',
-                  padding: '4px 6px',
-                  backgroundColor: '#EBF2FC',
-                  border: '1px solid #BCD0EE',
-                  color: '#2457A6',
-                  fontWeight: 600,
-                  fontSize: '11px',
-                  cursor: 'pointer'
-                }}
-              >
-                Log In as Admin
-              </button>
-            </div>
-          </div>
-        </div>
 
         <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '11.5px', color: '#9AA5B1' }}>
           By continuing, you agree to our{' '}

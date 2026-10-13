@@ -13,38 +13,7 @@ import { isAdminEmail } from '../firebase/adminConfig';
 
 const AuthContext = createContext(null);
 
-const DEMO_USERS = {
-  'seller@needconnect.demo': {
-    uid: 'demo_seller_patel',
-    name: 'Patel Electronics',
-    email: 'seller@needconnect.demo',
-    role: 'seller',
-    phone: '+91 98250 12345',
-    location: 'C.G. Road, Ahmedabad',
-    status: 'active',
-    categories: ['cat_mobiles', 'cat_electronics', 'cat_laptops'],
-    trustScore: 4.8,
-    totalDeals: 12
-  },
-  'admin@needconnect.demo': {
-    uid: 'demo_admin_root',
-    name: 'Platform Administrator',
-    email: 'admin@needconnect.demo',
-    role: 'admin',
-    phone: '+91 99999 00000',
-    location: 'Ahmedabad',
-    status: 'active'
-  },
-  'buyer@needconnect.demo': {
-    uid: 'demo_buyer_rohit',
-    name: 'Rohit Sharma',
-    email: 'buyer@needconnect.demo',
-    role: 'buyer',
-    phone: '+91 99090 12345',
-    location: 'Ahmedabad',
-    status: 'active'
-  }
-};
+
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(() => {
@@ -104,14 +73,10 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
-   * Normalize username to demo email
+   * Normalize email input (trim & lowercase)
    */
   const normalizeEmail = (input) => {
-    const trimmed = (input || '').trim().toLowerCase();
-    if (trimmed === 'seller') return 'seller@needconnect.demo';
-    if (trimmed === 'admin') return 'admin@needconnect.demo';
-    if (trimmed === 'buyer') return 'buyer@needconnect.demo';
-    return trimmed;
+    return (input || '').trim().toLowerCase();
   };
 
   /**
@@ -151,73 +116,18 @@ export const AuthProvider = ({ children }) => {
     setAuthError(null);
 
     try {
-      let userCredential = null;
-      let profile = null;
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const profile = await userService.syncAuthUser(userCredential.user);
 
-      try {
-        userCredential = await signInWithEmailAndPassword(auth, email, password);
-        profile = await userService.syncAuthUser(userCredential.user);
-      } catch (loginErr) {
-        // Attempt to create demo account in Firebase if not existing
-        if (
-          (email === 'seller@needconnect.demo' || email === 'admin@needconnect.demo' || email === 'buyer@needconnect.demo')
-        ) {
-          try {
-            userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const defaultRole = email === 'admin@needconnect.demo' ? 'admin' : (email === 'seller@needconnect.demo' ? 'seller' : 'buyer');
-            const defaultName = email === 'admin@needconnect.demo' ? 'Platform Administrator' : (email === 'seller@needconnect.demo' ? 'Patel Electronics' : 'Rohit Sharma');
-            profile = await userService.syncAuthUser(userCredential.user, defaultRole, { name: defaultName });
-          } catch (createErr) {
-            // If Firebase Auth is not configured on project, gracefully authenticate demo user locally
-            if (DEMO_USERS[email]) {
-              const demoData = DEMO_USERS[email];
-              const mockUser = {
-                uid: demoData.uid,
-                email: demoData.email,
-                displayName: demoData.name,
-                photoURL: null
-              };
-              setCurrentUser(mockUser);
-              setUserProfile(demoData);
-              sessionStorage.setItem('needconnect_session_user', JSON.stringify(mockUser));
-              sessionStorage.setItem('needconnect_session_profile', JSON.stringify(demoData));
-              return { user: mockUser, profile: demoData };
-            }
-            throw loginErr;
-          }
-        } else {
-          throw loginErr;
-        }
-      }
-
-      if (userCredential && profile) {
-        setCurrentUser(userCredential.user);
-        setUserProfile(profile);
-        sessionStorage.setItem('needconnect_session_user', JSON.stringify({
-          uid: userCredential.user.uid,
-          email: userCredential.user.email,
-          displayName: userCredential.user.displayName
-        }));
-        sessionStorage.setItem('needconnect_session_profile', JSON.stringify(profile));
-        return { user: userCredential.user, profile };
-      }
-
-      if (DEMO_USERS[email]) {
-        const demoData = DEMO_USERS[email];
-        const mockUser = {
-          uid: demoData.uid,
-          email: demoData.email,
-          displayName: demoData.name,
-          photoURL: null
-        };
-        setCurrentUser(mockUser);
-        setUserProfile(demoData);
-        sessionStorage.setItem('needconnect_session_user', JSON.stringify(mockUser));
-        sessionStorage.setItem('needconnect_session_profile', JSON.stringify(demoData));
-        return { user: mockUser, profile: demoData };
-      }
-
-      throw new Error('Authentication failed.');
+      setCurrentUser(userCredential.user);
+      setUserProfile(profile);
+      sessionStorage.setItem('needconnect_session_user', JSON.stringify({
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        displayName: userCredential.user.displayName
+      }));
+      sessionStorage.setItem('needconnect_session_profile', JSON.stringify(profile));
+      return { user: userCredential.user, profile };
     } catch (error) {
       console.error('Email Login Error:', error);
       setAuthError(error.message);
@@ -234,30 +144,12 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setAuthError(null);
     try {
-      let userCredential;
-      let profile;
-      try {
-        userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
-        profile = await userService.syncAuthUser(userCredential.user, role, {
-          name: name.trim(),
-          phone: phone.trim(),
-          location: location.trim()
-        });
-      } catch (err) {
-        // Fallback demo registration if API key restrictions apply in offline mode
-        const fallbackUid = 'user_' + Date.now().toString(36);
-        const fallbackUser = { uid: fallbackUid, email: email.trim(), displayName: name.trim() };
-        profile = {
-          uid: fallbackUid,
-          name: name.trim(),
-          email: email.trim(),
-          role,
-          phone: phone.trim(),
-          location: location.trim(),
-          status: 'active'
-        };
-        userCredential = { user: fallbackUser };
-      }
+      const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      const profile = await userService.syncAuthUser(userCredential.user, role, {
+        name: name.trim(),
+        phone: phone.trim(),
+        location: location.trim()
+      });
 
       setUserProfile(profile);
       setCurrentUser(userCredential.user);

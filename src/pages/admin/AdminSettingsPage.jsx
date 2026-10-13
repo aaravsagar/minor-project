@@ -1,32 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useToast } from '../../context/ToastContext';
 import { ADMIN_EMAILS } from '../../firebase/adminConfig';
-import { seedDemoData } from '../../firebase/seedDemoData';
-import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
-import { Settings, Database, RefreshCw, Shield, CheckCircle2 } from 'lucide-react';
+import { Settings, Shield, CheckCircle2 } from 'lucide-react';
 
 export const AdminSettingsPage = () => {
   const { currentUser } = useAuth();
-  const toast = useToast();
-  const [seeding, setSeeding] = useState(false);
-
-  const handleSeedData = async () => {
-    try {
-      setSeeding(true);
-      const res = await seedDemoData(true);
-      if (res.success) {
-        toast.success(res.message);
-      } else {
-        toast.error(res.message);
-      }
-    } catch (err) {
-      toast.error('Error: ' + err.message);
-    } finally {
-      setSeeding(false);
-    }
-  };
 
   return (
     <div>
@@ -101,21 +80,36 @@ export const AdminSettingsPage = () => {
         </div>
       </div>
 
-      {/* Database Maintenance Tools */}
+      {/* Category Configuration Info */}
       <div className="card">
-        <h3 className="card-title" style={{ marginBottom: '6px' }}>Data Synchronization</h3>
+        <h3 className="card-title" style={{ marginBottom: '6px' }}>Category Price Limits</h3>
         <p className="card-subtitle" style={{ marginBottom: '16px' }}>
-          Reset or re-seed marketplace categories and example records directly in Firestore.
+          All categories have enforced minimum and maximum price limits. Requirements submitted outside
+          these bounds are rejected at both the frontend and backend validation layers.
         </p>
-
-        <Button
-          variant="secondary"
-          icon={Database}
-          onClick={handleSeedData}
-          loading={seeding}
-        >
-          Re-seed Marketplace Demo Data
-        </Button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {[
+            { name: 'Books', min: '₹50', max: '₹50,000' },
+            { name: 'Stationery & Office', min: '₹30', max: '₹50,000' },
+            { name: 'Groceries & Food', min: '₹50', max: '₹50,000' },
+            { name: 'Beauty & Personal Care', min: '₹50', max: '₹50,000' },
+            { name: 'Fashion', min: '₹150', max: '₹1,00,000' },
+            { name: 'Sports & Fitness', min: '₹100', max: '₹2,00,000' },
+            { name: 'Toys & Games', min: '₹100', max: '₹1,00,000' },
+            { name: 'Electronics', min: '₹300', max: '₹5,00,000' },
+            { name: 'Services', min: '₹200', max: '₹5,00,000' },
+            { name: 'Furniture', min: '₹500', max: '₹3,00,000' },
+            { name: 'Mobile Phones', min: '₹1,000', max: '₹3,00,000' },
+            { name: 'Home Appliances', min: '₹1,000', max: '₹3,00,000' },
+            { name: 'Laptops', min: '₹5,000', max: '₹5,00,000' },
+            { name: 'Vehicles', min: '₹2,000', max: '₹50,00,000' }
+          ].map(cat => (
+            <div key={cat.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', backgroundColor: '#F8FAFC', borderRadius: '6px', border: '1px solid #E2E5E9', fontSize: '13px' }}>
+              <span style={{ fontWeight: 500, color: '#1F2933' }}>{cat.name}</span>
+              <span style={{ color: '#667085' }}>Min: <strong style={{ color: '#287D3C' }}>{cat.min}</strong> &nbsp;·&nbsp; Max: <strong style={{ color: '#2457A6' }}>{cat.max}</strong></span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
