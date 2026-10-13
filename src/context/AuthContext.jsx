@@ -73,10 +73,14 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
-   * Normalize email input (trim & lowercase)
+   * Normalize email input (supports shortcuts like 'admin' or 'seller')
    */
   const normalizeEmail = (input) => {
-    return (input || '').trim().toLowerCase();
+    const raw = (input || '').trim().toLowerCase();
+    if (raw === 'admin') return 'admin@needconnect.demo';
+    if (raw === 'seller') return 'seller@needconnect.demo';
+    if (raw === 'buyer') return 'buyer@needconnect.demo';
+    return raw;
   };
 
   /**
@@ -116,7 +120,37 @@ export const AuthProvider = ({ children }) => {
     setAuthError(null);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      let userCredential;
+      try {
+        userCredential = await signInWithEmailAndPassword(auth, email, password);
+      } catch (loginErr) {
+        // Automatically initialize default demo accounts on first attempt
+        if (
+          (email === 'admin@needconnect.demo' || email === 'seller@needconnect.demo' || email === 'buyer@needconnect.demo') &&
+          (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential')
+        ) {
+          try {
+            userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const defaultRole = email === 'admin@needconnect.demo' ? 'admin' : (email === 'seller@needconnect.demo' ? 'seller' : 'buyer');
+            const defaultName = email === 'admin@needconnect.demo' ? 'Platform Administrator' : (email === 'seller@needconnect.demo' ? 'Patel Electronics' : 'Rohit Sharma');
+            const profile = await userService.syncAuthUser(userCredential.user, defaultRole, { name: defaultName });
+
+            setCurrentUser(userCredential.user);
+            setUserProfile(profile);
+            sessionStorage.setItem('needconnect_session_user', JSON.stringify({
+              uid: userCredential.user.uid,
+              email: userCredential.user.email,
+              displayName: defaultName
+            }));
+            sessionStorage.setItem('needconnect_session_profile', JSON.stringify(profile));
+            return { user: userCredential.user, profile };
+          } catch (createErr) {
+            throw loginErr;
+          }
+        }
+        throw loginErr;
+      }
+
       const profile = await userService.syncAuthUser(userCredential.user);
 
       setCurrentUser(userCredential.user);
