@@ -168,6 +168,29 @@ export const requirementService = {
       };
     });
 
+    // Strictly filter out any mock / demo / placeholder postings so only 100% real user postings are returned
+    list = list.filter(r => {
+      const idStr = String(r.id || '').toLowerCase();
+      const buyerIdStr = String(r.buyerId || '').toLowerCase();
+      const titleStr = String(r.title || '').toLowerCase();
+      const descStr = String(r.description || '').toLowerCase();
+
+      const isMock = 
+        idStr.startsWith('req_demo') ||
+        idStr.includes('demo_') ||
+        idStr.startsWith('mock_') ||
+        buyerIdStr.startsWith('demo_') ||
+        buyerIdStr.startsWith('mock_') ||
+        r.isMock === true ||
+        r.isDemo === true ||
+        titleStr.includes('[demo]') ||
+        titleStr.includes('[mock]') ||
+        descStr.includes('demo posting') ||
+        descStr.includes('mock posting');
+
+      return !isMock;
+    });
+
     // Secondary client-side filters for un-indexed text substring matches and bounds
     if (location && location.trim()) {
       const loc = location.toLowerCase().trim();
@@ -212,7 +235,12 @@ export const requirementService = {
   async getAllRequirementsForAdmin() {
     const colRef = collection(db, 'requirements');
     const snap = await getDocs(colRef);
-    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    let list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    list = list.filter(r => {
+      const idStr = String(r.id || '').toLowerCase();
+      const buyerIdStr = String(r.buyerId || '').toLowerCase();
+      return !idStr.startsWith('req_demo') && !idStr.includes('demo_') && !buyerIdStr.startsWith('demo_') && !r.isMock && !r.isDemo;
+    });
     return list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
   },
 

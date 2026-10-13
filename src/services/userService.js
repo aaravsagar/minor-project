@@ -55,7 +55,7 @@ export const userService = {
 
     const initialProfile = {
       uid: user.uid,
-      name: extraProfile.name || user.displayName || (initialRole === 'seller' ? 'Demo Seller' : (initialRole === 'admin' ? 'Administrator' : 'User')),
+      name: extraProfile.name || user.displayName || (initialRole === 'seller' ? 'Seller' : (initialRole === 'admin' ? 'Administrator' : 'Buyer')),
       email: user.email || '',
       photoURL: user.photoURL || '',
       role: initialRole,

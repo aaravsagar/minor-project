@@ -154,4 +154,32 @@ describe('Requirement Browsing with Server-Side Firestore Filtering', () => {
     expect(sortedHigh[0].budget).toBe(52000);
     expect(sortedHigh[sortedHigh.length - 1].budget).toBe(35000);
   });
+
+  it('strictly filters out all mock and demo postings', async () => {
+    const mixedDocs = [
+      {
+        id: 'req_demo_iphone14',
+        data: () => ({ title: 'Mock iPhone', budget: 35000, status: 'active', buyerId: 'demo_buyer' })
+      },
+      {
+        id: 'req_real_12345',
+        data: () => ({ title: 'Real Buyer Samsung S24', budget: 65000, status: 'active', buyerId: 'real_user_890' })
+      },
+      {
+        id: 'mock_req_furniture',
+        data: () => ({ title: 'Fake Sofa', budget: 12000, status: 'active', buyerId: 'user_1' })
+      },
+      {
+        id: 'req_9999',
+        data: () => ({ title: '[Demo] Gaming Console', budget: 25000, status: 'active', buyerId: 'user_2' })
+      }
+    ];
+
+    firestore.getDocs.mockResolvedValueOnce({ docs: mixedDocs });
+    const results = await requirementService.getActiveRequirements();
+
+    expect(results.length).toBe(1);
+    expect(results[0].id).toBe('req_real_12345');
+    expect(results[0].title).toBe('Real Buyer Samsung S24');
+  });
 });

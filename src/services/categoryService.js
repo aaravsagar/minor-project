@@ -26,18 +26,23 @@ export const categoryService = {
       
       let list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-      // Auto-fallback: if database has 0 categories, initialize with default categories
+      // Auto-fallback: if database has 0 categories, initialize or return default categories
       if (list.length === 0) {
-        for (const cat of INITIAL_CATEGORIES) {
-          await setDoc(doc(db, 'categories', cat.id), {
-            ...cat,
-            isActive: true,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-          });
+        try {
+          for (const cat of INITIAL_CATEGORIES) {
+            await setDoc(doc(db, 'categories', cat.id), {
+              ...cat,
+              isActive: true,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            });
+          }
+          const freshSnap = await getDocs(catRef);
+          list = freshSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch {
+          // If unauthenticated or offline, use INITIAL_CATEGORIES directly
+          list = INITIAL_CATEGORIES.map(c => ({ ...c, isActive: true }));
         }
-        const freshSnap = await getDocs(catRef);
-        list = freshSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       }
 
       if (!all) {
@@ -46,8 +51,8 @@ export const categoryService = {
 
       return list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     } catch (err) {
-      console.error('Error fetching categories:', err);
-      return [];
+      console.warn('Error fetching categories, falling back to default:', err);
+      return INITIAL_CATEGORIES.map(c => ({ ...c, isActive: true }));
     }
   },
 

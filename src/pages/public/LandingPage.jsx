@@ -68,7 +68,7 @@ export const LandingPage = () => {
   const { currentUser, userProfile, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
-  const [sampleReqs, setSampleReqs] = useState([]);
+  const [realRequirements, setRealRequirements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hoveredCat, setHoveredCat] = useState(null);
   const [hoveredCard, setHoveredCard] = useState(null);
@@ -81,7 +81,8 @@ export const LandingPage = () => {
           requirementService.getActiveRequirements({ sortBy: 'newest' })
         ]);
         setCategories(cats);
-        setSampleReqs(reqs.slice(0, 3));
+        // Exclusively real user postings (up to 6)
+        setRealRequirements(reqs.slice(0, 6));
       } catch (err) {
         console.error('Error loading landing page data:', err);
       } finally {
@@ -99,6 +100,12 @@ export const LandingPage = () => {
   };
 
   const handleBrowseNeeds = () => {
+    if (!isAuthenticated) navigate('/login');
+    else if (userProfile?.role === 'seller') navigate('/seller/requirements');
+    else navigate('/buyer/requirements');
+  };
+
+  const handleViewRequirement = (req) => {
     if (!isAuthenticated) navigate('/login');
     else if (userProfile?.role === 'seller') navigate('/seller/requirements');
     else navigate('/buyer/requirements');
@@ -231,10 +238,10 @@ export const LandingPage = () => {
           gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
           gap: '32px'
         }}>
-          <StatBadge value={14} label="Product Categories" />
-          <StatBadge value={100} suffix="%" label="Real Buyer Demand" />
-          <StatBadge value={0} suffix=" spam" label="Zero Cold Calls" />
-          <StatBadge value={15} suffix="s" label="Avg Time to Post" />
+          <StatBadge value={categories.length || 14} label="Product Categories" />
+          <StatBadge value={realRequirements.length} suffix={realRequirements.length === 1 ? ' Need' : ' Needs'} label="Live Buyer Demands" />
+          <StatBadge value={100} suffix="%" label="Real Buyer Posts" />
+          <StatBadge value={0} suffix=" spam" label="Zero Middlemen" />
         </div>
       </section>
 
@@ -428,50 +435,82 @@ export const LandingPage = () => {
       </section>
 
       {/* ══════════════════════════════════════════════════════
-          RECENT REQUIREMENTS (real data)
+          LIVE MARKETPLACE POSTINGS (real user postings only)
       ══════════════════════════════════════════════════════ */}
-      {!loading && sampleReqs.length > 0 && (
-        <section style={{ backgroundColor: '#FFFFFF', padding: '88px 24px', borderTop: '1px solid #E2E5E9' }}>
-          <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '40px', flexWrap: 'wrap', gap: '16px' }}>
-              <div>
-                <div style={{
-                  display: 'inline-block', backgroundColor: '#FEF6EC',
-                  color: '#A15C00', borderRadius: '999px',
-                  padding: '5px 16px', fontSize: '12px',
-                  fontWeight: 700, letterSpacing: '0.5px',
-                  textTransform: 'uppercase', marginBottom: '10px'
-                }}>Live Demand</div>
-                <h2 style={{ fontSize: '28px', fontWeight: 800, color: '#1F2933', letterSpacing: '-0.5px' }}>
-                  Active Requirements
-                </h2>
-                <p style={{ fontSize: '14px', color: '#667085', marginTop: '6px' }}>
-                  Real needs posted by real buyers — waiting for your offer.
-                </p>
+      <section style={{ backgroundColor: '#FFFFFF', padding: '88px 24px', borderTop: '1px solid #E2E5E9' }} id="live-postings">
+        <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '40px', flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                backgroundColor: '#FEF6EC', color: '#A15C00',
+                borderRadius: '999px', padding: '5px 16px',
+                fontSize: '12px', fontWeight: 700, letterSpacing: '0.5px',
+                textTransform: 'uppercase', marginBottom: '10px'
+              }}>
+                <Sparkles size={13} color="#A15C00" />
+                Live Marketplace Feed
               </div>
+              <h2 style={{ fontSize: '28px', fontWeight: 800, color: '#1F2933', letterSpacing: '-0.5px' }}>
+                Active Buyer Requirements
+              </h2>
+              <p style={{ fontSize: '14px', color: '#667085', marginTop: '6px' }}>
+                Real-time buyer needs posted across categories. Only genuine buyer demand ready for seller offers.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button
+                id="postings-browse-btn"
                 onClick={handleBrowseNeeds}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '6px',
                   backgroundColor: 'transparent',
                   color: '#2457A6', border: '1.5px solid #2457A6',
-                  borderRadius: '8px', padding: '10px 20px',
+                  borderRadius: '8px', padding: '10px 18px',
                   fontSize: '13px', fontWeight: 600, cursor: 'pointer',
                   transition: 'all 0.2s ease'
                 }}
                 onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#2457A6'; e.currentTarget.style.color = '#fff'; }}
                 onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#2457A6'; }}
               >
-                View All <ArrowRight size={15} />
+                Browse All <ArrowRight size={15} />
+              </button>
+              <button
+                id="postings-create-btn"
+                onClick={handlePostRequirement}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  backgroundColor: '#2563EB', color: '#FFFFFF',
+                  border: 'none', borderRadius: '8px',
+                  padding: '10px 18px', fontSize: '13px', fontWeight: 600,
+                  cursor: 'pointer', boxShadow: '0 2px 8px rgba(37,99,235,0.25)',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#1d4ed8'; }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#2563EB'; }}
+              >
+                <PlusCircle size={15} />
+                Post Need
               </button>
             </div>
+          </div>
 
+          {loading ? (
+            /* Loading skeletons */
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-              {sampleReqs.map((req, i) => (
+              {[...Array(3)].map((_, i) => (
+                <div key={i} style={{ height: '240px', borderRadius: '14px', backgroundColor: '#F1F5F9', animation: 'pulse 1.4s ease infinite' }} />
+              ))}
+            </div>
+          ) : realRequirements.length > 0 ? (
+            /* Real postings grid */
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+              {realRequirements.map((req, i) => (
                 <div
                   key={req.id}
                   onMouseEnter={() => setHoveredCard(`req-${i}`)}
                   onMouseLeave={() => setHoveredCard(null)}
+                  onClick={() => handleViewRequirement(req)}
                   style={{
                     border: `1px solid ${hoveredCard === `req-${i}` ? '#BCD0EE' : '#E2E5E9'}`,
                     borderRadius: '14px',
@@ -480,69 +519,186 @@ export const LandingPage = () => {
                     display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
                     boxShadow: hoveredCard === `req-${i}` ? '0 8px 28px rgba(36,87,166,0.10)' : '0 1px 3px rgba(0,0,0,0.04)',
                     transition: 'all 0.25s ease',
-                    transform: hoveredCard === `req-${i}` ? 'translateY(-3px)' : 'translateY(0)'
+                    transform: hoveredCard === `req-${i}` ? 'translateY(-3px)' : 'translateY(0)',
+                    cursor: 'pointer'
                   }}
                 >
                   <div>
                     {/* Header row */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', gap: '8px' }}>
                       <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                        display: 'inline-flex', alignItems: 'center', gap: '6px',
                         backgroundColor: '#EBF6EE', color: '#287D3C',
                         borderRadius: '999px', padding: '3px 10px',
                         fontSize: '11px', fontWeight: 600
                       }}>
                         <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#287D3C', display: 'inline-block' }} />
-                        Active
+                        Active Request
                       </span>
                       <span style={{ fontSize: '11.5px', color: '#9AA5B1' }}>
                         {formatDate(req.createdAt)}
                       </span>
                     </div>
 
-                    {/* Category pill */}
-                    {req.categoryName && (
-                      <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '4px',
-                        backgroundColor: '#F0F5FF', color: '#2457A6',
-                        borderRadius: '6px', padding: '3px 8px',
-                        fontSize: '11px', fontWeight: 600, marginBottom: '10px'
-                      }}>
-                        <Tag size={10} />
-                        {req.categoryName}
-                      </div>
-                    )}
+                    {/* Category pill and urgency badge */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                      {req.categoryName && (
+                        <div style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '4px',
+                          backgroundColor: '#F0F5FF', color: '#2457A6',
+                          borderRadius: '6px', padding: '3px 8px',
+                          fontSize: '11px', fontWeight: 600
+                        }}>
+                          <span>{CAT_EMOJI[req.categoryId] || '📦'}</span>
+                          {req.categoryName}
+                        </div>
+                      )}
+                      {req.urgency && (
+                        <div style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '3px',
+                          backgroundColor: req.urgency === 'Immediate' ? '#FEF2F2' : '#F8FAFC',
+                          color: req.urgency === 'Immediate' ? '#DC2626' : '#64748B',
+                          border: `1px solid ${req.urgency === 'Immediate' ? '#FECACA' : '#E2E8F0'}`,
+                          borderRadius: '6px', padding: '2px 7px',
+                          fontSize: '10.5px', fontWeight: 600
+                        }}>
+                          <Clock size={10} />
+                          {req.urgency}
+                        </div>
+                      )}
+                      {req.quantity && req.quantity > 1 && (
+                        <div style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '3px',
+                          backgroundColor: '#F3F4F6', color: '#374151',
+                          borderRadius: '6px', padding: '2px 7px',
+                          fontSize: '10.5px', fontWeight: 600
+                        }}>
+                          Qty: {req.quantity}
+                        </div>
+                      )}
+                    </div>
 
-                    <h4 style={{ fontSize: '15.5px', fontWeight: 700, color: '#1F2933', marginBottom: '8px', lineHeight: 1.35 }}>
+                    <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#1F2933', marginBottom: '8px', lineHeight: 1.35 }}>
                       {req.title}
                     </h4>
-                    <p style={{ fontSize: '13px', color: '#4B5563', marginBottom: '18px', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    <p style={{
+                      fontSize: '13px', color: '#4B5563', marginBottom: '18px',
+                      lineHeight: 1.5, display: '-webkit-box',
+                      WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden'
+                    }}>
                       {req.description}
                     </p>
                   </div>
 
                   {/* Footer */}
-                  <div style={{ borderTop: '1px solid #E2E5E9', paddingTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                    <div>
-                      <div style={{ fontSize: '11px', color: '#9AA5B1', marginBottom: '2px' }}>Budget</div>
-                      <div style={{ fontSize: '17px', fontWeight: 800, color: '#2457A6' }}>
-                        {formatCurrency(req.budget)}
+                  <div style={{ borderTop: '1px solid #E2E5E9', paddingTop: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '12px' }}>
+                      <div>
+                        <div style={{ fontSize: '11px', color: '#9AA5B1', marginBottom: '2px' }}>Budget Ceiling</div>
+                        <div style={{ fontSize: '18px', fontWeight: 800, color: '#2457A6' }}>
+                          {formatCurrency(req.budget)}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '11px', color: '#9AA5B1', marginBottom: '2px' }}>Location</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', justifyContent: 'flex-end' }}>
+                          <MapPin size={12} color="#667085" />
+                          <span style={{ fontSize: '13px', fontWeight: 500, color: '#4B5563' }}>{req.location || 'Pan-India'}</span>
+                        </div>
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '11px', color: '#9AA5B1', marginBottom: '2px' }}>Location</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', justifyContent: 'flex-end' }}>
-                        <MapPin size={12} color="#667085" />
-                        <span style={{ fontSize: '13px', fontWeight: 500, color: '#4B5563' }}>{req.location}</span>
-                      </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '4px' }}>
+                      <span style={{ fontSize: '11.5px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <MessageCircle size={13} color="#2457A6" />
+                        {req.offerCount ? `${req.offerCount} ${req.offerCount === 1 ? 'offer' : 'offers'}` : 'Open for offers'}
+                      </span>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                        fontSize: '12px', fontWeight: 700, color: '#2457A6'
+                      }}>
+                        Submit Pitch <ArrowRight size={13} />
+                      </span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-      )}
+          ) : (
+            /* Live Postings Board Empty State */
+            <div style={{
+              backgroundColor: '#FAFCFF',
+              border: '1.5px dashed #CBD5E1',
+              borderRadius: '18px',
+              padding: '60px 24px',
+              textAlign: 'center',
+              position: 'relative'
+            }}>
+              <div style={{
+                width: '64px', height: '64px', borderRadius: '18px',
+                backgroundColor: '#EBF2FC', display: 'inline-flex',
+                alignItems: 'center', justifyContent: 'center',
+                marginBottom: '20px', color: '#2457A6'
+              }}>
+                <Package size={30} />
+              </div>
+              <h3 style={{ fontSize: '22px', fontWeight: 800, color: '#1F2933', marginBottom: '10px' }}>
+                Real-Time Marketplace Feed is Active
+              </h3>
+              <p style={{ fontSize: '14.5px', color: '#64748B', maxWidth: '560px', margin: '0 auto 28px', lineHeight: 1.6 }}>
+                There are currently no active buyer postings in this window. As soon as buyers submit what they need, their verified requests will appear here live for competitive seller bidding.
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap', marginBottom: '32px' }}>
+                <button
+                  id="empty-state-post-req"
+                  onClick={handlePostRequirement}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    backgroundColor: '#2563EB', color: '#FFFFFF',
+                    border: 'none', borderRadius: '10px',
+                    padding: '12px 24px', fontSize: '14px', fontWeight: 700,
+                    cursor: 'pointer', boxShadow: '0 4px 14px rgba(37,99,235,0.3)',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#1d4ed8'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#2563EB'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                >
+                  <PlusCircle size={17} />
+                  Post the First Requirement
+                </button>
+                <button
+                  onClick={() => document.getElementById('categories')?.scrollIntoView({ behavior: 'smooth' })}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    backgroundColor: '#FFFFFF', color: '#1F2933',
+                    border: '1px solid #CBD5E1', borderRadius: '10px',
+                    padding: '12px 22px', fontSize: '14px', fontWeight: 600,
+                    cursor: 'pointer', transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#2457A6'; e.currentTarget.style.color = '#2457A6'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#CBD5E1'; e.currentTarget.style.color = '#1F2933'; }}
+                >
+                  Explore Categories
+                </button>
+              </div>
+
+              {/* Trust micro-badges */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', flexWrap: 'wrap', paddingTop: '20px', borderTop: '1px solid #E2E8F0', maxWidth: '720px', margin: '0 auto' }}>
+                <span style={{ fontSize: '12.5px', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CheckCircle2 size={15} color="#287D3C" /> 100% Verified Buyer Demand
+                </span>
+                <span style={{ fontSize: '12.5px', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CheckCircle2 size={15} color="#287D3C" /> Direct Seller Competition
+                </span>
+                <span style={{ fontSize: '12.5px', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CheckCircle2 size={15} color="#287D3C" /> MCDM Multi-Criteria Scoring
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* ══════════════════════════════════════════════════════
           CTA BANNER

@@ -6,7 +6,7 @@ import {
   getDocs, 
   serverTimestamp 
 } from 'firebase/firestore';
-import { db } from './config';
+import { db } from './config.js';
 
 export const INITIAL_CATEGORIES = [
   { id: 'cat_electronics', name: 'Electronics', description: 'Audio equipment, cameras, gaming consoles & gadgets' },
