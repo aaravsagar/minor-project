@@ -11,9 +11,9 @@ import {
   serverTimestamp,
   increment
 } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { getCategoryLimits } from '../config/categoryPriceLimits';
-import { apiFetch } from '../config/apiConfig';
+import { db } from '../firebase/config.js';
+import { getCategoryLimits } from '../config/categoryPriceLimits.js';
+import { apiFetch } from '../config/apiConfig.js';
 
 export const requirementService = {
   /**

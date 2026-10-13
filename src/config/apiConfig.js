@@ -3,7 +3,9 @@
  * Uses environment variable VITE_API_BASE_URL or defaults to the deployed Render URL.
  */
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'https://minor-project-rf8c.onrender.com';
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || 
+  (typeof process !== 'undefined' && process.env?.VITE_API_BASE_URL) || 
+  'https://minor-project-rf8c.onrender.com';
 
 /**
  * Robust fetch wrapper for all backend API calls.
