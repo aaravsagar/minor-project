@@ -10,6 +10,7 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
+import { seedDemoData } from '../../firebase/seedDemoData';
 import { 
   Users, 
   Layers, 
@@ -20,7 +21,9 @@ import {
   CheckCircle2, 
   AlertTriangle,
   ArrowRight,
-  TrendingUp
+  TrendingUp,
+  Database,
+  WifiOff
 } from 'lucide-react';
 
 export const AdminDashboard = () => {
@@ -32,24 +35,55 @@ export const AdminDashboard = () => {
   const [latestReqs, setLatestReqs] = useState([]);
   const [openReports, setOpenReports] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [seeding, setSeeding] = useState(false);
+  const [networkNotice, setNetworkNotice] = useState(false);
 
   const loadAdminData = async () => {
     try {
       setLoading(true);
       const [platformStats, reqs, reports] = await Promise.all([
         statsService.getAdminPlatformStats(),
-        requirementService.getAllRequirementsForAdmin(),
-        reportService.getAllReports()
+        requirementService.getAllRequirementsForAdmin().catch(() => []),
+        reportService.getAllReports().catch(() => [])
       ]);
-      setStats(platformStats);
-      setLatestReqs(reqs.slice(0, 5));
-      setOpenReports(reports.filter(r => r.status === 'open'));
+      setStats(platformStats || {
+        totalUsers: 0, totalBuyers: 0, totalSellers: 0,
+        activeRequirements: 0, fulfilledRequirements: 0,
+        totalPitches: 0, acceptedPitches: 0,
+        totalDeals: 0, totalGrossVolume: 0, avgDealValue: 0
+      });
+      setLatestReqs((reqs || []).slice(0, 5));
+      setOpenReports((reports || []).filter(r => r.status === 'open'));
     } catch (err) {
       console.error('Error loading admin dashboard:', err);
-      toast.error('Failed to load admin metrics.');
+      setNetworkNotice(true);
+      setStats({
+        totalUsers: 0, totalBuyers: 0, totalSellers: 0,
+        activeRequirements: 0, fulfilledRequirements: 0,
+        totalPitches: 0, acceptedPitches: 0,
+        totalDeals: 0, totalGrossVolume: 0, avgDealValue: 0
+      });
+      toast.error('Could not connect to Firebase. Check internet connection or adblocker.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSeedData = async () => {
+    try {
+      setSeeding(true);
+      const res = await seedDemoData(true);
+      if (res.success) {
+        toast.success(res.message || 'Platform seed data reloaded.');
+        await loadAdminData();
+      } else {
+        toast.error(res.message || 'Failed to seed data.');
+      }
+    } catch (err) {
+      console.error('Error seeding data:', err);
+      toast.error('Failed to seed data: ' + err.message);
+    } finally {
+      setSeeding(false);
     }
   };
 
@@ -110,6 +144,29 @@ export const AdminDashboard = () => {
           </Button>
         </div>
       </div>
+
+      {/* Network or Ad-Blocker Alert */}
+      {networkNotice && (
+        <div 
+          style={{
+            backgroundColor: '#FFFBEB',
+            border: '1px solid #FDE68A',
+            borderRadius: '8px',
+            padding: '12px 18px',
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            color: '#92400E',
+            fontSize: '13px'
+          }}
+        >
+          <WifiOff size={18} color="#D97706" style={{ flexShrink: 0 }} />
+          <div>
+            <strong>Firestore Connection Notice:</strong> Browser extensions (such as uBlock Origin, Brave Shields, or Privacy Badger) or offline network can block Firebase endpoints (<code>net::ERR_BLOCKED_BY_CLIENT</code>). If metrics do not update, please disable adblocking for this origin.
+          </div>
+        </div>
+      )}
 
       {/* Gross Transaction Volume Highlight Banner */}
       <div 
